@@ -29,9 +29,9 @@ const NearbyConnection = () => {
   }, [target.length]);
 
   // Função para processar os vértices com animação
-  const processVerticesWithAnimation = useCallback((vertices, parentPolyline) => {
+  const processVerticesWithAnimation = useCallback((vertices, targetPolyline) => {
     reset();
-    setParent(parentPolyline);
+    setParent(targetPolyline);
     
     vertices.forEach((vertex, index) => {
       setTimeout(() => {
@@ -55,10 +55,10 @@ const NearbyConnection = () => {
       const { data } = response.data;
       const { coordinates, _id } = data.location;
       
-      const parentPolyline = polylines.find(item => item._id === _id);
+      const targetPolyline = polylines.find(item => item._id === _id);
       
-      if (!parentPolyline) {
-        toast.error("Polilinha pai não encontrada");
+      if (!targetPolyline) {
+        toast.error("Polilinha alvo não encontrada");
         return;
       }
 
@@ -66,7 +66,7 @@ const NearbyConnection = () => {
         coordinates, 
         target[0], 
         (result) => {
-          processVerticesWithAnimation(result, parentPolyline);
+          processVerticesWithAnimation(result, targetPolyline);
         }
       );
     } catch (error) {
@@ -90,10 +90,10 @@ const NearbyConnection = () => {
       const { data } = response.data;
       const { coordinates, _id } = data.lastPoint;
       
-      const parentPolyline = polylines.find(item => item._id === _id);
+      const targetPolyline = polylines.find(item => item._id === _id);
       
-      if (!parentPolyline) {
-        toast.error("Polilinha pai não encontrada");
+      if (!targetPolyline) {
+        toast.error("Polilinha alvo não encontrada");
         return;
       }
 
@@ -104,7 +104,7 @@ const NearbyConnection = () => {
         splitterLatLng, 
         targetLatLng, 
         (result) => {
-          processVerticesWithAnimation(result, parentPolyline);
+          processVerticesWithAnimation(result, targetPolyline);
         }
       );
     } catch (error) {
@@ -114,7 +114,7 @@ const NearbyConnection = () => {
   }, [target, polylines, validateTarget, processVerticesWithAnimation]);
 
   return (
-    <div className="d-flex gap-2">
+    <div className="d-flex" style={{ gap: "12px" }}>
       <Button 
         className="nearbyPTP" 
         variant="dark" 

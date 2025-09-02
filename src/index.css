@@ -9,7 +9,7 @@ body {
   z-index: 90000;
   position: absolute;
   top: 10px;
-  right: 70px;
+  right: 80px;
 }
 
 .modal-content {
@@ -19,11 +19,25 @@ body {
   z-index: 90000;
   position: absolute;
   top: 10px;
-  right: 215px;
+  right: 250px; /* mantém o primeiro botão */
 }
 .nearbySplitter {
   z-index: 90000;
   position: absolute;
   top: 10px;
-  right: 363px;
+  right: 450px; /* ajusta para dar espaço do outro botão */
+}
+.add-button,
+.nearbyPTP,
+.nearbySplitter {
+  transition: all 0.2s ease; /* animação suave para todos */
+  cursor: pointer;
+}
+
+.add-button:hover,
+.nearbyPTP:hover,
+.nearbySplitter:hover {
+  background-color: #555; /* cor de fundo ao passar o mouse */
+  color: #fff; /* cor do texto */
+  transform: scale(1.05); /* leve aumento */
 }

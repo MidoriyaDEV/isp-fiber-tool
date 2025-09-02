@@ -1,6 +1,8 @@
+// src/main.jsx (ou index.js)
+import "bootstrap/dist/css/bootstrap.min.css"; // <- IMPORTANTE: primeiro o Bootstrap
+import "./index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import "./index.css";
 import App from "./App";
 import { MapContext } from "./context/MapContext";
 import { EditableContextProvider } from "./context/EditablePolylineContext";

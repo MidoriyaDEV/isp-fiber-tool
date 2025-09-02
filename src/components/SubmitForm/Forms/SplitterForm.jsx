@@ -21,103 +21,116 @@ const SplitterForm = ({ handleClose }) => {
     coreCount: "",
   });
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
+  const getUnusedColor = () => {
+    if (!parent) return [];
+
+    let children = parent.childrens;
+    let totalCores = parent.totalCore || parent.splitterLimit;
+
+    if (parent.type === "localFiber" && parent.mainLocalFiber) {
+      children = parent.mainLocalFiber.childrens;
+    }
+
+    return coreColor
+      .slice(0, totalCores)
+      .filter(c => !children.some(child => child.color === c.colorName))
+      .map(c => (
+        <option key={c.colorName} value={c.colorName}>
+          {c.colorName}
+        </option>
+      ));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const { name, OltPortNo, color, splitterType, coreCount } = formData;
+
+    if (!window.google?.maps?.geometry?.spherical) {
+      toast.error("Google Maps is not loaded yet.");
+      return;
+    }
+
     const length = window.google.maps.geometry.spherical.computeLength(coordinates);
+
     const newPolyline = {
       parentType: parent.type,
       parent: parent._id,
-      name: name,
+      name,
       coordinates,
       splitterLimit: splitterType,
-      color: color,
+      color,
       portNo: OltPortNo,
-      totalCore: parseInt(coreCount),
+      totalCore: parseInt(coreCount, 10),
       length,
     };
+
     toast.promise(axiosInstance.post("/splitter-connection", newPolyline), {
-      loading: () => "Adding new reseller connection...",
+      loading: "Adding new splitter connection...",
       success: ({ data: { data } }) => {
         setNewAddedPolyline(true);
         reset();
         handleClose();
         return `Successfully added new ${data.type} Connection`;
       },
-      error: (error) => {
-        console.log(error.response);
-        const {
-          data: { errors, message },
-        } = error.response;
-        if (errors) {
-          return errors[0].msg;
-        }
-
-        if (message) {
-          return message;
-        }
+      error: (err) => {
+        const res = err.response?.data;
+        if (res?.errors) return res.errors[0].msg;
+        if (res?.message) return res.message;
+        return "Something went wrong!";
       },
     });
-  };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const getUnusedColor = () => {
-    if (parent.type === "splitter") {
-      const coreColors = coreColor.slice(0, parent.splitterLimit);
-      const colors = coreColors.map((item) => {
-        const foundedColor = parent.childrens.find((child) => {
-          return child.color === item.colorName;
-        });
-        if (foundedColor) {
-          return null;
-        }
-        return <option value={item.colorName}>{item.colorName}</option>;
-      });
-      return colors;
-    } else if (parent.type === "localFiber") {
-      const coreColors = coreColor.slice(0, parent.totalCore);
-
-      const colors = coreColors.map((item) => {
-        const foundedColor = (parent.mainLocalFiber ? parent.mainLocalFiber.childrens : parent.childrens).find(
-          (child) => {
-            return child.color === item.colorName;
-          }
-        );
-        return foundedColor ? "" : <option value={item.colorName}>{item.colorName}</option>;
-      });
-      return colors;
-    }
   };
 
   return (
     <Form onSubmit={handleSubmit}>
       <Modal.Body>
         <Form.Group className="mb-2">
-          <Form.Control type="text" placeholder="Name" name="name" onChange={handleChange} />
+          <Form.Control
+            type="text"
+            placeholder="Name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+          />
         </Form.Group>
-        {parent.type !== "splitter" && (
+
+        {parent?.type !== "splitter" && (
           <Form.Group className="mb-2">
-            <Form.Control type="text" placeholder="Olt Port No" name="OltPortNo" onChange={handleChange} />
+            <Form.Control
+              type="text"
+              placeholder="Olt Port No"
+              name="OltPortNo"
+              value={formData.OltPortNo}
+              onChange={handleChange}
+            />
           </Form.Group>
         )}
 
-        {(parent.type === "localFiber" || parent.type === "splitter") && (
+        {(parent?.type === "localFiber" || parent?.type === "splitter") && (
           <Form.Group className="mb-2">
-            <Form.Select name="color" defaultValue={"0"} onChange={handleChange}>
-              <option value="0">Select Fiber Core</option>
+            <Form.Select
+              name="color"
+              value={formData.color}
+              onChange={handleChange}
+            >
+              <option value="">Select Fiber Core</option>
               {getUnusedColor()}
             </Form.Select>
           </Form.Group>
         )}
+
         <Form.Group className="mb-2">
-          <Form.Select defaultValue={"0"} onChange={handleChange} name="splitterType">
-            <option selected value="0">
-              Select Splitter Type
-            </option>
+          <Form.Select
+            name="splitterType"
+            value={formData.splitterType}
+            onChange={handleChange}
+          >
+            <option value="">Select Splitter Type</option>
             <option value="2">1/2</option>
             <option value="4">1/4</option>
             <option value="8">1/8</option>
@@ -125,10 +138,16 @@ const SplitterForm = ({ handleClose }) => {
             <option value="32">1/32</option>
           </Form.Select>
         </Form.Group>
+
         <Form.Group className="mt-2">
-          <CoreSelect name="coreCount" onChange={handleChange} />
+          <CoreSelect
+            name="coreCount"
+            value={formData.coreCount}
+            onChange={handleChange}
+          />
         </Form.Group>
       </Modal.Body>
+
       <Modal.Footer>
         <Button variant="secondary" onClick={handleClose}>
           Close

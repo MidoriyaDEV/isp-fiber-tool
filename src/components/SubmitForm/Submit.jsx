@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Button } from "react-bootstrap";
 import SubmitForm from "./SubmitForm";
 
 const Submit = () => {
@@ -6,13 +7,14 @@ const Submit = () => {
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
+
   return (
     <div>
-      {" "}
-      <button className="btn btn-dark add-button" onClick={handleShow}>
-        Add Connection
-      </button>
-      <SubmitForm handleClose={handleClose} handleShow={handleShow} show={show} />
+      <Button variant="dark" className="add-button" onClick={handleShow}>
+        Adicionar Conexão
+      </Button>
+
+      <SubmitForm show={show} handleClose={handleClose} />
     </div>
   );
 };
