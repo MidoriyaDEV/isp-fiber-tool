@@ -25,24 +25,22 @@ const PrintReseller = ({ connection }) => {
     color,
     connectionLimit,
     location,
-    childrens,
+    childrens = [],
     connectionUsed,
     totalCore,
     length,
   } = connection;
 
   useEffect(() => {
-    if (location?.coordinates) {
-      const coordinates = location.coordinates.map((item) => {
-        return { lat: item[0], lng: item[1] };
-      });
-      setCoordinates(coordinates);
+    if (location?.coordinates?.length) {
+      const coords = location.coordinates.map((item) => ({ lat: item[0], lng: item[1] }));
+      setCoordinates(coords);
     }
-  }, [location.coordinates]);
+  }, [location?.coordinates]);
 
   const options = {
     geodesic: true,
-    strokeColor: coreColor.find((item) => item.colorName === color).colorCode,
+    strokeColor: coreColor.find((item) => item.colorName === color)?.colorCode || "#000",
     strokeOpacity: 1.0,
     strokeWeight: 4,
   };
@@ -55,7 +53,7 @@ const PrintReseller = ({ connection }) => {
         </p>
       );
     }
-    return <></>;
+    return null;
   });
 
   const icon = {
@@ -65,24 +63,21 @@ const PrintReseller = ({ connection }) => {
     anchor: new window.google.maps.Point(15, 15),
   };
 
-  const onClickHandler = (event) => {
-    setParent(connection, event.latLng);
-  };
+  const onClickHandler = (event) => setParent(connection, event.latLng);
 
   const deleteHandler = () => {
+    if (!_id) return toast.error("ID da conexão não encontrado.");
     toast.promise(axiosInstance.delete(`/reseller-connection?id=${_id}`), {
       loading: "Deleting...",
       success: () => {
         setFetch(true);
         return "Deleted successfully";
       },
-      error: ({
-        response: {
-          data: { message },
-        },
-      }) => message,
+      error: ({ response: { data: { message } = {} } = {} }) => message || "Erro ao excluir a conexão",
     });
   };
+
+  const lastCoordinate = coordinates[coordinates.length - 1];
 
   return (
     <>
@@ -94,24 +89,22 @@ const PrintReseller = ({ connection }) => {
           setShowInfoWindow(true);
         }}
       />
-      <Marker
-        position={
-          coordinates[coordinates.length - 1] &&
-          new window.google.maps.LatLng({
-            lat: coordinates[coordinates.length - 1]?.lat,
-            lng: coordinates[coordinates.length - 1]?.lng,
-          })
-        }
-        onClick={onClickHandler}
-        icon={icon}
-        onRightClick={({ latLng }) => {
-          setPosition(latLng);
-          setShowInfoWindow(true);
-        }}
-      />
-      {showInfoWindow && (
+
+      {lastCoordinate && (
+        <Marker
+          position={lastCoordinate}
+          onClick={onClickHandler}
+          icon={icon}
+          onRightClick={({ latLng }) => {
+            setPosition(latLng);
+            setShowInfoWindow(true);
+          }}
+        />
+      )}
+
+      {showInfoWindow && position && (
         <InfoWindow position={position} onCloseClick={() => setShowInfoWindow(false)}>
-          <>
+          <div>
             <p className="mb-1 fw-bold">{name}</p>
             <hr className="my-1" />
             <p className="mb-1">
@@ -124,21 +117,19 @@ const PrintReseller = ({ connection }) => {
               <span className="fw-bold">Port No:</span> {portNo}
             </p>
             <p className="mb-1">
-              <span className=" fw-bold">Distance:</span> {length.toFixed(2)}m
+              <span className=" fw-bold">Distance:</span> {length?.toFixed(2) || 0}m
             </p>
             <p className="mb-1">
-              <span className="fw-bold"> Olt Type:</span> {oltType}
+              <span className="fw-bold">Olt Type:</span> {oltType}
             </p>
             <p className="mb-1">
-              <span className="fw-bold"> total Connection Used:</span>
-              {connectionUsed}
+              <span className="fw-bold">Total Connection Used:</span> {connectionUsed || 0}
             </p>
             <p className="mb-1">
-              <span className="fw-bold"> oltNumber:</span>
-              {oltSerialNumber}
+              <span className="fw-bold">Olt Serial Number:</span> {oltSerialNumber}
             </p>
             <p className="mb-1">
-              <span className="fw-bold"> total Core:</span> {totalCore}
+              <span className="fw-bold">Total Core:</span> {totalCore || 0}
             </p>
             <button className="badge mb-1 bg-danger border-0" onClick={deleteHandler}>
               Delete
@@ -146,7 +137,7 @@ const PrintReseller = ({ connection }) => {
             <p className="mb-1 fw-bold">Port Used: </p>
             <hr className="my-1 w-50" />
             {childConnection}
-          </>
+          </div>
         </InfoWindow>
       )}
     </>

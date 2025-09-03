@@ -4,29 +4,35 @@ import axiosInstance from "../utility/axios";
 export const PolylinesContext = createContext({
   polylines: [],
   setPolylines: () => {},
+  addPolyline: () => {},
   setFetch: () => {},
 });
 
 export const PolylinesContextProvider = (props) => {
   const [polylines, setPolylines] = useState([]);
-  const [newAddedPolyline, setNewAddedPolyline] = useState(null);
   const [fetch, setFetch] = useState(null);
 
+  // Buscar todas as conexões
   useEffect(() => {
     const fetchData = async () => {
-      const response = await axiosInstance.get("/getAllConnection");
-      const {
-        data: { data },
-      } = response;
-      setPolylines(data);
-      setNewAddedPolyline(null);
-      setFetch(null);
+      try {
+        const response = await axiosInstance.get("/getAllConnection");
+        const { data: { data } } = response;
+        setPolylines(data);
+      } catch (err) {
+        console.error("Erro ao buscar conexões:", err);
+      }
     };
     fetchData();
-  }, [newAddedPolyline, fetch]);
+  }, [fetch]);
+
+  // Adicionar uma polilinha nova localmente
+  const addPolyline = (newPolyline) => {
+    setPolylines(prev => [...prev, newPolyline]);
+  };
 
   return (
-    <PolylinesContext.Provider value={{ polylines, setPolylines, setNewAddedPolyline, setFetch }}>
+    <PolylinesContext.Provider value={{ polylines, setPolylines, addPolyline, setFetch }}>
       {props.children}
     </PolylinesContext.Provider>
   );

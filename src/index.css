@@ -1,43 +1,66 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+/* ====================== */
+/* ===== Estrutura ====== */
+/* ====================== */
+
+/* Mantém altura e margens zeradas */
 html,
 body {
   height: 100%;
   margin: 0;
   padding: 0;
+  font-family: "Poppins", sans-serif;/* fonte mais limpa */
 }
 
-.add-button {
-  z-index: 90000;
-  position: absolute;
-  top: 10px;
-  right: 80px;
-}
+/* ====================== */
+/* ===== Botões ========= */
+/* ====================== */
 
-.modal-content {
-  margin-top: 100px;
-}
-.nearbyPTP {
-  z-index: 90000;
-  position: absolute;
-  top: 10px;
-  right: 250px; /* mantém o primeiro botão */
-}
-.nearbySplitter {
-  z-index: 90000;
-  position: absolute;
-  top: 10px;
-  right: 450px; /* ajusta para dar espaço do outro botão */
-}
+/* Base dos botões */
 .add-button,
 .nearbyPTP,
 .nearbySplitter {
-  transition: all 0.2s ease; /* animação suave para todos */
+  z-index: 90000;
+  position: absolute;
+  top: 10px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: all 0.2s ease;
   cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
+/* Hover animado e mais agradável */
 .add-button:hover,
 .nearbyPTP:hover,
 .nearbySplitter:hover {
-  background-color: #555; /* cor de fundo ao passar o mouse */
-  color: #fff; /* cor do texto */
-  transform: scale(1.05); /* leve aumento */
+  background-color: #555;
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Posicionamento horizontal individual */
+.add-button {
+  right: 65px;
+}
+
+.nearbyPTP {
+  right: 265px;
+}
+
+.nearbySplitter {
+  right: 490px;
+}
+
+/* ====================== */
+/* ===== Modal ========= */
+/* ====================== */
+
+.modal-content {
+  margin-top: 120px; /* sobe um pouco */
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
 }

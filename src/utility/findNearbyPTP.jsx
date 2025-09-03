@@ -1,71 +1,86 @@
-import * as turf from "@turf/turf";
+import React, { useCallback } from "react";
+import { Button } from "react-bootstrap";
+import toast from "react-hot-toast";
 
-const getPointOnPolyline = (coordinates, targetPoint) => {
-  const point = turf.point(targetPoint);
-  const line = turf.lineString(coordinates);
-  const snapped = turf.pointOnLine(line, point);
+import useEditablePolyline from "../../hooks/useEditablePolyline";
+import usePolylines from "../../hooks/usePolylines";
+import axiosInstance from "../../utility/axios";
 
-  const pstnOnLine = {
-    lat: snapped.geometry.coordinates[1],
-    lng: snapped.geometry.coordinates[0],
-  };
-  return pstnOnLine;
-};
+import findNearByPTP from "../../utility/findNearByPTP";
 
-const findNearByPTP = async (coordinates, point, callback) => {
-  let finalResult = null;
+const NearbyConnection = () => {
+  const { coordinates: target, addVertex, setParent, reset } = useEditablePolyline();
+  const { polylines, addPolyline } = usePolylines();
 
-  const pointOnLine = getPointOnPolyline(coordinates, [point.lng, point.lat]);
+  const validateTarget = useCallback(() => {
+    if (!target || target.length !== 1) {
+      toast.error("Selecione apenas um alvo");
+      return false;
+    }
+    return true;
+  }, [target]);
 
-  const directionsService = new window.google.maps.DirectionsService();
+  const findNearbyPointToPointConnection = useCallback(async () => {
+    if (!validateTarget()) return;
 
-  const request = {
-    origin: new window.google.maps.LatLng(pointOnLine.lat, pointOnLine.lng),
-    destination: point,
-    travelMode: "WALKING",
-  };
+    try {
+      const response = await axiosInstance.get(
+        `/ptp-connection?coordinates=${JSON.stringify({ lat: target[0].lat, lng: target[0].lng })}`
+      );
 
-  await directionsService.route(request, async function (result, status) {
-    if (status === "OK") {
-      const allSteps = result.routes[0].legs[0].steps;
-      let shortestDistance = +Infinity;
-      let shortestPath = null;
-      for (let i = 0, j = 0; i < allSteps.length && j < 2; i++, j++) {
-        const step = allSteps[i];
+      const coordinates = response?.data?.data?.location?.coordinates;
+      const _id = response?.data?.data?.location?._id;
 
-        const { lat, lng } = getPointOnPolyline(coordinates, [step.start_location.lng(), step.start_location.lat()]);
-
-        const request = {
-          origin: new window.google.maps.LatLng(lat, lng),
-          destination: point,
-          travelMode: "WALKING",
-        };
-        // eslint-disable-next-line no-loop-func
-        await directionsService.route(request, async (result, status) => {
-          if (status === "OK") {
-            const {
-              distance: { value },
-            } = result.routes[0].legs[0];
-
-            if (value < shortestDistance) {
-              shortestDistance = value;
-              shortestPath = result;
-            }
-          }
-        });
+      if (!coordinates || !_id) {
+        toast.error("Conexão PTP não encontrada");
+        return;
       }
 
-      const {
-        routes: [{ overview_path: path }],
-      } = shortestPath;
+      // Procura se já existe no contexto
+      let targetPolyline = polylines.find(item => item._id === _id);
+      if (!targetPolyline) {
+        targetPolyline = { _id, coordinates };
+        addPolyline(targetPolyline);
+      }
 
-      const { lat, lng } = getPointOnPolyline(coordinates, [path[0].lng(), path[0].lat()]);
-      const startPoint = new window.google.maps.LatLng(lat, lng);
-      const endPoint = new window.google.maps.LatLng(point);
+      // Calcula o caminho real usando Turf + DirectionsService
+      findNearByPTP(coordinates.map(([lng, lat]) => ({ lat, lng })), target[0], (result) => {
+        if (result.length === 0) {
+          toast.error("Nenhum caminho válido encontrado");
+          return;
+        }
 
-      finalResult = [startPoint, ...path, endPoint];
-      callback(finalResult);
+        // Adiciona os pontos calculados como polyline temporária
+        const animatedPolyline = {
+          _id: `${_id}-calculated`,
+          coordinates: result.map(p => ({ lat: p.lat(), lng: p.lng() })),
+        };
+        addPolyline(animatedPolyline);
+
+        // Se quiser animar ponto a ponto:
+        result.forEach((p, i) => {
+          setTimeout(() => addVertex({ latLng: { lat: p.lat(), lng: p.lng() } }), 200 * i);
+        });
+      });
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao buscar conexão PTP");
     }
-  });
+  }, [target, polylines, validateTarget, addPolyline, addVertex, setParent, reset]);
+
+  return (
+    <div className="d-flex" style={{ gap: "12px" }}>
+      <Button
+        className="nearbyPTP"
+        variant="dark"
+        onClick={findNearbyPointToPointConnection}
+        disabled={!target || target.length === 0}
+      >
+        Encontrar PTP Próximo
+      </Button>
+    </div>
+  );
 };
-export default findNearByPTP;
+
+export default NearbyConnection;

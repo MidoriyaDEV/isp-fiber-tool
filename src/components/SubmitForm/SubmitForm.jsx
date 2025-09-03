@@ -22,19 +22,19 @@ const SubmitForm = ({ show, handleClose, initialTab = null }) => {
     switch (parent?.type) {
       case "pointToPoint":
         return [
-          { key: "reseller", title: "Add Reseller", component: <ResellerForm handleClose={handleClose} /> },
-          { key: "company", title: "Add Company", component: <CompanyForm parent={parent} handleClose={handleClose} /> },
+          { key: "reseller", title: "Adicionar Revendedor", component: <ResellerForm handleClose={handleClose} /> },
+          { key: "company", title: "Adicionar Empresa", component: <CompanyForm parent={parent} handleClose={handleClose} /> },
         ];
       case "reseller":
       case "localFiber":
         return [
-          { key: "splitter", title: "Add Splitter", component: <SplitterForm handleClose={handleClose} /> },
-          { key: "localFiber", title: "Add Local Fiber", component: <LocalFiberForm handleClose={handleClose} /> },
+          { key: "splitter", title: "Adicionar Divisor", component: <SplitterForm handleClose={handleClose} /> },
+          { key: "localFiber", title: "Adicionar Fibra Local", component: <LocalFiberForm handleClose={handleClose} /> },
         ];
       case "splitter":
         return [
-          { key: "home", title: "Add Home", component: <HomeForm handleClose={handleClose} /> },
-          { key: "splitter", title: "Add Splitter", component: <SplitterForm handleClose={handleClose} /> },
+          { key: "home", title: "Adicionar Residência", component: <HomeForm handleClose={handleClose} /> },
+          { key: "splitter", title: "Adicionar Divisor", component: <SplitterForm handleClose={handleClose} /> },
         ];
       default:
         return [];
@@ -55,10 +55,13 @@ const SubmitForm = ({ show, handleClose, initialTab = null }) => {
       fullscreen="md-down"
       dialogClassName="custom-modal"
     >
+      <Modal.Header closeButton>
+        <Modal.Title>Adicionar Novo Elemento</Modal.Title>
+      </Modal.Header>
       <Tabs defaultActiveKey={defaultActive} className="mt-1 mx-2 custom-tabs">
         {tabs.map(({ key, title, component }) => (
           <Tab eventKey={key} title={title} key={key}>
-            <div className="tab-inner">{component}</div>
+            <div className="tab-inner p-3">{component}</div>
           </Tab>
         ))}
       </Tabs>

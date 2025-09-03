@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import tjIcon from "../../../assets/img/tj.png";
 import useEditablePolyline from "../../../hooks/useEditablePolyline";
 import usePolylines from "../../../hooks/usePolylines";
+import coreColor from "../../../utility/coreColor";
 import axiosInstance from "../../../utility/axios";
 
 const PrintLocalFiber = ({ connection }) => {
@@ -13,30 +14,45 @@ const PrintLocalFiber = ({ connection }) => {
   const { setParent } = useEditablePolyline();
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [position, setPosition] = useState(null);
-  const { _id, name, locations, type, totalCore, totalConnected, markers, childrens, mainLocalFiber, length } =
-    connection;
 
+  const {
+    _id,
+    name,
+    locations,
+    type,
+    totalCore,
+    totalConnected,
+    markers,
+    childrens,
+    mainLocalFiber,
+    length,
+    color,
+  } = connection;
+
+  // Transformar coordenadas para lat/lng
   useEffect(() => {
-    if (locations?.coordinates) {
-      const coordinates = locations.coordinates.map((item) => ({ lat: item[0], lng: item[1] }));
-      setCoordinates(coordinates);
+    if (locations?.coordinates?.length) {
+      const coords = locations.coordinates.map((item) => ({ lat: item[0], lng: item[1] }));
+      setCoordinates(coords);
     }
-  }, [locations.coordinates]);
+  }, [locations]);
 
+  // Definir opções da polyline
+  const stroke = coreColor.find((c) => c.colorName === color)?.colorCode || "#142F43";
   const options = {
     geodesic: true,
-    strokeColor: "#142F43",
+    strokeColor: stroke,
     strokeOpacity: 1.0,
     strokeWeight: 4,
   };
 
-  const localFiberChildrens = (mainLocalFiber?.childrens || childrens).map((item) => {
-    return item.connectionType === "splitter" ? (
+  // Renderizar filhos (childrens) se forem splitters
+  const localFiberChildrens = (mainLocalFiber?.childrens || childrens || []).map((item) => {
+    if (item.connectionType !== "splitter") return null;
+    return (
       <p className="mb-1" key={item._id}>
-        {item.color}: used{" "}
+        {item.color}: used
       </p>
-    ) : (
-      <></>
     );
   });
 
@@ -55,7 +71,7 @@ const PrintLocalFiber = ({ connection }) => {
         response: {
           data: { message },
         },
-      }) => message,
+      }) => message || "Erro ao excluir a conexão",
     });
   };
 
@@ -71,30 +87,32 @@ const PrintLocalFiber = ({ connection }) => {
         onClick={onClickHandler}
       />
 
-      {markers.map((marker) => {
-        const { coordinates } = marker;
+      {Array.isArray(markers) &&
+        markers.map((marker) => {
+          const [lng, lat] = marker.coordinates || [];
+          if (lat == null || lng == null) return null;
 
-        const icon = {
-          url: tjIcon,
-          scaledSize: new window.google.maps.Size(30, 30),
-          origin: new window.google.maps.Point(0, 0),
-          anchor: new window.google.maps.Point(15, 15),
-        };
-        return (
-          <Marker
-            key={marker._id}
-            position={{ lat: coordinates[1], lng: coordinates[0] }}
-            onClick={onClickHandler}
-            icon={icon}
-            onRightClick={({ latLng }) => {
-              setPosition(latLng);
-              setShowInfoWindow(true);
-            }}
-          />
-        );
-      })}
+          const icon = {
+            url: tjIcon,
+            scaledSize: new window.google.maps.Size(30, 30),
+            origin: new window.google.maps.Point(0, 0),
+            anchor: new window.google.maps.Point(15, 15),
+          };
+          return (
+            <Marker
+              key={marker._id}
+              position={{ lat, lng }}
+              onClick={onClickHandler}
+              icon={icon}
+              onRightClick={({ latLng }) => {
+                setPosition(latLng);
+                setShowInfoWindow(true);
+              }}
+            />
+          );
+        })}
 
-      {showInfoWindow && (
+      {showInfoWindow && position && (
         <InfoWindow position={position} onCloseClick={() => setShowInfoWindow(false)}>
           <>
             <p className="mb-1 fw-bold">{name}</p>
@@ -103,16 +121,16 @@ const PrintLocalFiber = ({ connection }) => {
               <span className="fw-bold">Connection Type:</span> {type}
             </p>
             <p className="mb-1">
-              <span className=" fw-bold">total Used Core:</span>
+              <span className="fw-bold">Total Used Core:</span>{" "}
               {mainLocalFiber?.totalConnected || totalConnected}/{mainLocalFiber?.totalCore || totalCore}
             </p>
             <p className="mb-1">
-              <span className=" fw-bold">Distance:</span> {length.toFixed(2)}m
+              <span className="fw-bold">Distance:</span> {length?.toFixed(2) || 0}m
             </p>
             <button className="badge mb-1 bg-danger border-0" onClick={deleteHandler}>
               Delete
             </button>
-            <p className="mb-1 fw-bold">Core Available: </p>
+            <p className="mb-1 fw-bold">Core Available:</p>
             <hr className="my-1 w-50" />
             {localFiberChildrens}
           </>

@@ -10,7 +10,7 @@ import CoreSelect from "../../Shared/Form/CoreSelect";
 
 const PointToPointForm = ({ show, handleClose }) => {
   const { coordinates, reset } = useEditablePolyline();
-  const { setNewAddedPolyline } = usePolylines();
+  const { addPolyline } = usePolylines(); // Alterado para addPolyline
 
   const [formData, setFormData] = useState({
     name: "",
@@ -21,52 +21,73 @@ const PointToPointForm = ({ show, handleClose }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!coordinates || coordinates.length === 0) {
+      toast.error("Nenhum ponto selecionado para criar a conexão");
+      return;
+    }
+
     const { name, coreCount } = formData;
-    const length = window.google.maps.geometry.spherical.computeLength(coordinates);
+
+    // Converte para LatLng caso seja apenas {lat, lng} simples
+    const latLngArray = coordinates.map(c => new window.google.maps.LatLng(c.lat, c.lng));
+
+    const length = window.google.maps.geometry.spherical.computeLength(latLngArray);
+
     const newPointToPointConnection = {
-      name: name,
+      name,
       totalCore: parseInt(coreCount),
       coordinates,
       length,
     };
-    toast.promise(axiosInstance.post("/ptp-connection", newPointToPointConnection), {
-      loading: () => "Adding new company connection...",
 
-      success: ({ data: { data } }) => {
-        setNewAddedPolyline(true);
-        reset();
-        handleClose();
-        return `Successfully added new ${data.type} Connection`;
-      },
-      error: (error) => {
-        console.log(error.response);
-        const {
-          data: { errors, message },
-        } = error.response;
-        if (errors) {
-          return errors[0].msg;
+    try {
+      await toast.promise(
+        axiosInstance.post("/ptp-connection", newPointToPointConnection),
+        {
+          loading: () => "Adicionando nova conexão da empresa...",
+          success: ({ data }) => {
+            const savedConnection = data?.data;
+            if (savedConnection) {
+              addPolyline(savedConnection); // adiciona direto no contexto
+            }
+            reset();
+            handleClose();
+            return `Conexão ${savedConnection?.type || "Ponto a Ponto"} adicionada com sucesso`;
+          },
+          error: (error) => {
+            console.error(error?.response || error);
+            const msg =
+              error?.response?.data?.errors?.[0]?.msg ||
+              error?.response?.data?.message ||
+              "Erro desconhecido";
+            return msg;
+          },
         }
-
-        if (message) {
-          return message;
-        }
-      },
-    });
+      );
+    } catch (err) {
+      console.error("Erro ao salvar conexão:", err);
+      toast.error("Falha ao adicionar conexão");
+    }
   };
 
   return (
     <Modal show={show} onHide={handleClose}>
       <Modal.Header closeButton>
-        <Modal.Title>Add pointToPoint Connection</Modal.Title>
+        <Modal.Title>Adicionar Conexão Ponto a Ponto</Modal.Title>
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body>
           <Form.Group className="mb-3">
-            <Form.Label>Enter Name:</Form.Label>
-            <Form.Control type="text" placeholder="Area Name" name="name" onChange={handleChange} />
+            <Form.Label>Digite o Nome:</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Nome da Área"
+              name="name"
+              onChange={handleChange}
+            />
           </Form.Group>
           <Form.Group className="mb-3">
             <CoreSelect name="coreCount" onChange={handleChange} />
@@ -74,10 +95,10 @@ const PointToPointForm = ({ show, handleClose }) => {
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>
-            Close
+            Fechar
           </Button>
           <Button variant="primary" type="submit">
-            Submit
+            Enviar
           </Button>
         </Modal.Footer>
       </Form>

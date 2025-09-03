@@ -11,21 +11,20 @@ const PrintHome = ({ connection }) => {
   const [coordinates, setCoordinates] = useState([]);
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [position, setPosition] = useState(null);
+
   const { name, color, onuNo, type, locations, _id, totalCore, length } = connection;
 
+  // Transformar coordenadas para lat/lng corretos
   useEffect(() => {
-    if (locations?.coordinates) {
-      const coordinates = locations.coordinates.map((item) => {
-        return { lat: item[0], lng: item[1] };
-      });
-      setCoordinates(coordinates);
+    if (locations?.coordinates?.length) {
+      const coords = locations.coordinates.map(([lng, lat]) => ({ lat, lng }));
+      setCoordinates(coords);
     }
-  }, [locations.coordinates]);
+  }, [locations]);
 
   const options = {
-    path: coordinates,
     geodesic: true,
-    strokeColor: coreColor.find((item) => item.colorName === color)?.colorCode,
+    strokeColor: coreColor.find((item) => item.colorName === color)?.colorCode || "#000",
     strokeOpacity: 1.0,
     strokeWeight: 3,
   };
@@ -37,23 +36,30 @@ const PrintHome = ({ connection }) => {
     anchor: new window.google.maps.Point(15, 15),
   };
 
+  const lastCoordinate = coordinates[coordinates.length - 1] || null;
+
   const deleteHandler = () => {
+    if (!_id) return toast.error("ID da conexão não encontrado.");
     toast.promise(axiosInstance.delete(`/home-connection?id=${_id}`), {
-      loading: "Deleting...",
+      loading: "Excluindo...",
       success: () => {
         setFetch(true);
-        return "Deleted successfully";
+        return "Conexão residencial excluída com sucesso";
       },
       error: ({
         response: {
           data: { message },
         },
-      }) => message,
+      }) => message || "Erro ao excluir a conexão",
     });
   };
+
+  if (coordinates.length === 0) return null;
+
   return (
     <>
       <Polyline
+        path={coordinates}
         options={options}
         onRightClick={({ latLng }) => {
           setPosition(latLng);
@@ -61,47 +67,31 @@ const PrintHome = ({ connection }) => {
         }}
       />
 
-      <Marker
-        position={
-          coordinates[coordinates.length - 1] &&
-          new window.google.maps.LatLng({
-            lat: coordinates[coordinates.length - 1]?.lat,
-            lng: coordinates[coordinates.length - 1]?.lng,
-          })
-        }
-        onClick={() => {
-          console.log("marker");
-        }}
-        icon={icon}
-        onRightClick={({ latLng }) => {
-          setPosition(latLng);
-          setShowInfoWindow(true);
-        }}
-      />
-      {showInfoWindow && (
+      {lastCoordinate && (
+        <Marker
+          position={lastCoordinate}
+          icon={icon}
+          onRightClick={({ latLng }) => {
+            setPosition(latLng);
+            setShowInfoWindow(true);
+          }}
+        />
+      )}
+
+      {showInfoWindow && position && (
         <InfoWindow position={position} onCloseClick={() => setShowInfoWindow(false)}>
-          <>
+          <div>
             <p className="mb-1 fw-bold">{name}</p>
             <hr className="my-1" />
-            <p className="mb-1">
-              <span className="fw-bold">Onu No:</span> {onuNo}
-            </p>
-            <p className="mb-1">
-              <span className="fw-bold">connection Type:</span> {type}
-            </p>
-            <p className="mb-1">
-              <span className="fw-bold">Core Color:</span> {color}
-            </p>
-            <p className="mb-1">
-              <span className="fw-bold">Distance:</span> {length.toFixed(2)}m
-            </p>
-            <p className="mb-1">
-              <span className="fw-bold">Total Core:</span> {totalCore}
-            </p>
+            <p className="mb-1"><span className="fw-bold">Número da ONU:</span> {onuNo}</p>
+            <p className="mb-1"><span className="fw-bold">Tipo de Conexão:</span> {type}</p>
+            <p className="mb-1"><span className="fw-bold">Cor do Núcleo:</span> {color}</p>
+            <p className="mb-1"><span className="fw-bold">Distância:</span> {length?.toFixed(2) || 0}m</p>
+            <p className="mb-1"><span className="fw-bold">Total de Núcleos:</span> {totalCore}</p>
             <button className="badge mb-1 bg-danger border-0" onClick={deleteHandler}>
-              Delete
+              Excluir
             </button>
-          </>
+          </div>
         </InfoWindow>
       )}
     </>
